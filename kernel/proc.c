@@ -120,13 +120,25 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+
+
+
+  // initialize alarm varibles
+  p->alarm_handler = 0;
+  p->alarm_interval = 0;
+  p->ticks = 0;
+  p->alarm_handling = 0;
+  if ((p->saved_trapframe = (struct trapframe *)kalloc()) == 0) {
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
     release(&p->lock);
     return 0;
   }
-
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -150,6 +162,11 @@ found:
 static void
 freeproc(struct proc *p)
 {
+
+  if(p->saved_trapframe)
+    kfree((void*)p->saved_trapframe);
+  p->saved_trapframe = 0;
+
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;

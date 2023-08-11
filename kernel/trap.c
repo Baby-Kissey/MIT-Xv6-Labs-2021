@@ -29,6 +29,13 @@ trapinithart(void)
   w_stvec((uint64)kernelvec);
 }
 
+
+
+
+
+
+
+
 //
 // handle an interrupt, exception, or system call from user space.
 // called from trampoline.S
@@ -67,6 +74,20 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+    if (which_dev == 2) {
+      // timer interrupt
+      p->ticks ++;
+      if (p->alarm_interval != 0 && p->ticks % p->alarm_interval == 0) {
+        if (p->alarm_handling == 0) {
+          p->alarm_handling = 1;
+          // save origin trapframe
+          cpytrapframe(p->saved_trapframe, p->trapframe);
+          // if arrival time interval, set return address to alarm_handler
+          p->trapframe->epc = (uint64)p->alarm_handler;
+        }
+      }
+    }
+
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
